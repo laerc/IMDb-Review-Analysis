@@ -3,9 +3,18 @@
 # Dataset : http://ai.stanford.edu/%7Eamaas/data/sentiment/
 # To start, just download the dataset, and extract the file in the same folder of the main.py
 
-import omdb
-import json
 import os
+import re
+import json
+import omdb
+
+ID_SIZE = 7
+
+def format_id(id):
+	if 'tt' not in id:
+		id = 'tt' + ('0' * (ID_SIZE - len(id)) + id)
+
+	return id
 
 #debug print and return the movie info
 def get_imdb_info(id, type='movie'):
@@ -14,6 +23,7 @@ def get_imdb_info(id, type='movie'):
 	omdb.set_default('apikey', API_KEY)
 	omdb.set_default('tomatoes', True)
 
+	id = format_id(id)
 	movie = omdb.imdbid(id, fullplot=True, tomatoes=True)
 
 	url = 'https://www.imdb.com/title/' + movie['imdb_id'] + '/'
@@ -24,7 +34,7 @@ def get_imdb_info(id, type='movie'):
 
 #get the files from a directory structure
 def get_files_name(pattern='train'):
-	files_name = []
+	filenames_ret = []
 
 	for dirname, dirnames, filenames in os.walk('.'):
 
@@ -36,7 +46,7 @@ def get_files_name(pattern='train'):
 		if pattern in dirname and len(dirnames) == 0:
 			# print path to all filenames.
 			for filename in filenames:
-				files_name.append(filename)
+				filenames_ret.append(dirname + '/' + filename)
 				#print(os.path.join(dirname, filename))
 
 		# Advanced usage:
@@ -45,7 +55,14 @@ def get_files_name(pattern='train'):
 		# don't go into any .git directories.
 			dirnames.remove('.git')
 
-	return files_name
+	return filenames_ret
 
-get_imdb_info('tt0010790')
+def get_data_from_file(filenames = []):
+
+	for filename in filenames:
+		with open(filename) as reader:
+			reader.read()
+
+get_imdb_info('10790')
 files_name = get_files_name('train')
+get_data_from_file(files_name)
