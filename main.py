@@ -9,6 +9,7 @@ import json
 import omdb
 import bs4
 import nltk
+from nltk.corpus import stopwords
 
 ID_SIZE = 7
 
@@ -63,24 +64,31 @@ def get_files_name(pattern='train'):
 
 	return filenames_ret
 
-def parse_data(review, path_to_file):
+def parse_data(review, path_to_file, sw):
 	
 	parsed_string = re.split('[_ |.]',path_to_file[1])
 	
 	id, rating = format_id(parsed_string[0]), int(parsed_string[1])
+	#remove all the html tags
 	review = clean_string(review)
+	#tokenize the words and remove all the non alpha characters
 	review = tokenize_string(review)
+
+	review = remove_stop_words(review, sw)
+
+	#remove steop words
 	print (id, rating)
 
 	return {'id': id, 'rating': rating, 'review': review}
 
 def get_data_from_file(filenames = []):
+	sw = stopwords.words("english")	
 	reviews = []
 
 	for path in filenames:
 		with open(path[0] + '/' + path[1]) as reader:
 			review = reader.read()
-			reviews.append(parse_data(review, path))
+			reviews.append(parse_data(review, path, sw))
 
 	return reviews
 
@@ -91,8 +99,12 @@ def tokenize_string(review):
 	tokens = [word.lower() for word in tokens if word.isalpha()]
 	return tokens
 
+def remove_stop_words(review, sw):
+	return [word for word in review if word not in sw]
+
 def start():
 	nltk.download('punkt')
+	nltk.download('stopwords')
 
 start()
 get_imdb_info('10790')
