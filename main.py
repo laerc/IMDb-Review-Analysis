@@ -69,6 +69,7 @@ def parse_data(review, path_to_file):
 	
 	id, rating = format_id(parsed_string[0]), int(parsed_string[1])
 	review = clean_string(review)
+	review = tokenize_string(review)
 	print (id, rating)
 
 	return {'id': id, 'rating': rating, 'review': review}
@@ -80,10 +81,20 @@ def get_data_from_file(filenames = []):
 		with open(path[0] + '/' + path[1]) as reader:
 			review = reader.read()
 			reviews.append(parse_data(review, path))
-	
+
 	return reviews
 
+# This method apply tokenize to the string
+def tokenize_string(review):
+	# tokenize the string
+	tokens = nltk.word_tokenize(review)
+	tokens = [word.lower() for word in tokens if word.isalpha()]
+	return tokens
 
+def start():
+	nltk.download('punkt')
+
+start()
 get_imdb_info('10790')
-files_name = get_files_name('train')
-get_data_from_file(files_name)
+filenames = get_files_name(pattern = 'train')
+get_data_from_file(filenames)
