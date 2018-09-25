@@ -11,102 +11,122 @@ import bs4
 import nltk
 from nltk.corpus import stopwords
 
-ID_SIZE = 7
+#Class that holds information about the each review
+class Review:
+	ID_SIZE = 7
+	path_to_file = ''	
+	review = []
 
-def format_id(id):
-	if 'tt' not in id:
-		id = 'tt' + ('0' * (ID_SIZE - len(id)) + id)
+	# A set of words that contain default stop words in english
+	sw = stopwords.words("english")
 
-	return id
+	def __init__(self, review, path):
+		self.review = review
+		self.path_to_file = path
+		self.parse_data(self.review, self.path_to_file, self.sw)
 
-def clean_string(review):
-	text = bs4.BeautifulSoup(review, "lxml")
-	return text.get_text()
+	def format_id(self, id):
+		if 'tt' not in id:
+			id = 'tt' + ('0' * (self.ID_SIZE - len(id)) + id)
 
-#debug print and return the movie info
-def get_imdb_info(id, type='movie'):
-	API_KEY = "68735ac"
+		return id
 
-	omdb.set_default('apikey', API_KEY)
-	omdb.set_default('tomatoes', True)
+	def clean_string(self):
+		text = bs4.BeautifulSoup(self.review, "lxml")
+		return text.get_text()
 
-	id = format_id(id)
-	movie = omdb.imdbid(id, fullplot=True, tomatoes=True)
+	#debug print and return the movie info
+	def get_imdsb_info(self, id, type='movie'):
+		API_KEY = "68735ac"
 
-	url = 'https://www.imdb.com/title/' + movie['imdb_id'] + '/'
-	print (url)
-	print (json.dumps(movie, indent=4, sort_keys=True))
-	#return and info about the movie
-	return movie
+		omdb.set_default('apikey', API_KEY)
+		omdb.set_default('tomatoes', True)
 
-#get the files from a directory structure
-def get_files_name(pattern='train'):
-	filenames_ret = []
+		id = format_id(id)
+		movie = omdb.imdbid(id, fullplot=True, tomatoes=True)
 
-	for dirname, dirnames, filenames in os.walk('.'):
+		url = 'https://www.imdb.com/title/' + movie['imdb_id'] + '/'
+		print (url)
+		print (json.dumps(movie, indent=4, sort_keys=True))
+		#return and info about the movie
+		return movie
 
-		# print path to all subdirectories first.
-		for subdirname in dirnames:
-			print(os.path.join(dirname, subdirname))
+	# This method apply tokenize to the string
+	def tokenize_string(self):
+		# tokenize the string
+		tokens = nltk.word_tokenize(self.review)
+		tokens = [word.lower() for word in tokens if word.isalpha()]
+		return tokens
+
+	def remove_stop_words(self):
+		return [word for word in self.review if word not in self.sw]
+
+	def parse_data(self, review, path_to_file, sw):
+		print(path_to_file)
+		parsed_string = re.split('[_ |.]',self.path_to_file[1])
 		
-		#garantees the pattern in the name and get only usefull data
-		if pattern in dirname and len(dirnames) == 0:
-			# print path to all filenames.
-			for filename in filenames:
-				filenames_ret.append([dirname, filename])
-				#print(os.path.join(dirname, filename))
+		id, rating = self.format_id(parsed_string[0]), int(parsed_string[1])
+		#remove all the html tags
+		self.review = self.clean_string()
+		#tokenize the words and remove all the non alpha characters
+		self.review = self.tokenize_string()
 
-		# Advanced usage:
-		# editing the 'dirnames' list will stop os.walk() from recursing into there.
-		if '.git' in dirnames:
-		# don't go into any .git directories.
-			dirnames.remove('.git')
+		self.review = self.remove_stop_words()
 
-	return filenames_ret
+		#remove steop words
+		print (id, rating)
 
-def parse_data(review, path_to_file, sw):
+		return {'id': id, 'rating': rating, 'review': review}
+
+
+class Parser:
+	pattern = ''
+	files = []
 	
-	parsed_string = re.split('[_ |.]',path_to_file[1])
-	
-	id, rating = format_id(parsed_string[0]), int(parsed_string[1])
-	#remove all the html tags
-	review = clean_string(review)
-	#tokenize the words and remove all the non alpha characters
-	review = tokenize_string(review)
+	def __init__(self, pattern):
+		self.pattern = pattern
+		self.files = []
 
-	review = remove_stop_words(review, sw)
+	#get the files from a directory structure
+	def get_files_name(self):
 
-	#remove steop words
-	print (id, rating)
+		for dirname, dirnames, filenames in os.walk('.'):
 
-	return {'id': id, 'rating': rating, 'review': review}
+			# print path to all subdirectories first.
+			for subdirname in dirnames:
+				print(os.path.join(dirname, subdirname))
+			
+			#garantees the pattern in the name and get only usefull data
+			if self.pattern in dirname and len(dirnames) == 0:
+				# print path to all filenames.
+				for filename in filenames:
+					self.files.append([dirname, filename])
+					#print(os.path.join(dirname, filename))
 
-def get_data_from_file(filenames = []):
-	sw = stopwords.words("english")	
-	reviews = []
+			# Advanced usage:
+			# editing the 'dirnames' list will stop os.walk() from recursing into there.
+			if '.git' in dirnames:
+			# don't go into any .git directories.
+				dirnames.remove('.git')
 
-	for path in filenames:
-		with open(path[0] + '/' + path[1]) as reader:
-			review = reader.read()
-			reviews.append(parse_data(review, path, sw))
+		return self.files
 
-	return reviews
+	def get_data_from_file(self):
+		reviews = []
 
-# This method apply tokenize to the string
-def tokenize_string(review):
-	# tokenize the string
-	tokens = nltk.word_tokenize(review)
-	tokens = [word.lower() for word in tokens if word.isalpha()]
-	return tokens
-
-def remove_stop_words(review, sw):
-	return [word for word in review if word not in sw]
+		for path in self.files:
+			with open(path[0] + '/' + path[1]) as reader:
+				review = reader.read()
+				review = Review(review, path)
+				reviews.append(review)
+		return reviews
 
 def start():
 	nltk.download('punkt')
 	nltk.download('stopwords')
 
+
 start()
-get_imdb_info('10790')
-filenames = get_files_name(pattern = 'train')
-get_data_from_file(filenames)
+parser = Parser('train')
+filenames = parser.get_files_name()
+parser.get_data_from_file()
