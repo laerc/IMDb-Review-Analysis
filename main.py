@@ -19,9 +19,15 @@ class Review:
 	review = []
 
 	# A set of words that contain default stop words in english
-	sw = stopwords.words("english")
 
 	def __init__(self, review, path):
+		self.sw = stopwords.words("english")
+
+		#remove words that may contains information about negative reviews
+		self.sw.remove('not')
+		self.sw.remove('very')
+		print (self.sw)
+		
 		self.review = review
 		self.path_to_file = path
 		self.parse_data(self.review, self.path_to_file, self.sw)
@@ -64,7 +70,6 @@ class Review:
 
 		#remove stop words
 		self.review = self.remove_stop_words()
-
 		
 		print (id, rating)
 
@@ -118,19 +123,18 @@ class Parser:
 
 	def get_data_from_file(self):
 		reviews = []
-
+		j = 0
 		for path in self.files:
 			with open(path[0] + '/' + path[1]) as reader:
 				review = reader.read()
 				review = Review(review, path)
-				review.generate_ngrams(n=3)
+				ngrams = review.generate_ngrams(n=3)
 				reviews.append(review)
 		return reviews
 
 def start():
 	nltk.download('punkt')
 	nltk.download('stopwords')
-
 
 start()
 parser = Parser('train')
